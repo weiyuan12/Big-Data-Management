@@ -5,6 +5,7 @@ class Query:
         self.END_MONTH = None
         self.TOWN =None
         self.AREA =80
+
         
         self.getQueryParams()
         self.print_params()

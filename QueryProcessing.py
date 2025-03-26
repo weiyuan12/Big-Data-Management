@@ -4,11 +4,8 @@ import numpy as np
 class QueryProcessing: 
 
     def __init__(self, query: Query, storage : InMemoryColumnStore):
-        print("-----------PROCESSING QUERY----------------")
-        pos_1 = self.getFirstResultCol(storage, query.START_MONTH, query.END_MONTH)
-        pos_2 = self.getSecondResultCol(pos_1, storage, query.TOWN)
-        pos_3 = self.getThirdResultCol(pos_2, storage, query.AREA)
-        self.operationOnFinalResult(pos_3, storage)
+        self.query = query
+        self.storage = storage
         pass
 
     def getFirstResultCol (self, storage : InMemoryColumnStore, start_month, end_month):
@@ -56,5 +53,40 @@ class QueryProcessing:
             
         print(result)
         return result
+    
+    def getResult (self, choice):
+        category = {
+            1: "Min Price",
+            2: "Average Price",
+            3: "Standard Deviation",
+            4: "Min Price per SqM"
+        }
+        print("-----------PROCESSING QUERY----------------")
+        pos_1 = self.getFirstResultCol(self.storage, self.query.START_MONTH, self.query.END_MONTH)
+        pos_2 = self.getSecondResultCol(pos_1, self.storage, self.query.TOWN)
+        pos_3 = self.getThirdResultCol(pos_2, self.storage, self.query.AREA)
+        if len(pos_3) == 0:
+            return "No Result"
+        if choice == 1:
+            price_data = np.array(self.storage.DATA["price"])[pos_3]
+            print("Result: ", price_data.min(), " Saved")
+            return self.query.START_MONTH[:4], self.query.START_MONTH[5:], self.query.TOWN,category[1] ,price_data.min()
+        elif choice == 2:
+            price_data = np.array(self.storage.DATA["price"])[pos_3]
+            print("Result: ", price_data.mean(), " Saved")
+            return self.query.START_MONTH[:4], self.query.START_MONTH[5:], self.query.TOWN,category[2] ,price_data.mean()
+        elif choice == 3:
+            price_data = np.array(self.storage.DATA["price"])[pos_3]
+            print("Result: ", price_data.std(), " Saved")
+            return self.query.START_MONTH[:4], self.query.START_MONTH[5:], self.query.TOWN,category[3] ,price_data.std()
+        elif choice == 4:
+            price_data = np.array(self.storage.DATA["price"])[pos_3]
+            area_data = np.array(self.storage.DATA["area"])[pos_3]
+            price_per_area = price_data / area_data 
+            print("Result: ", price_per_area.min(), " Saved")
+            return self.query.START_MONTH[:4], self.query.START_MONTH[5:], self.query.TOWN,category[4] ,price_per_area.min()
+
+
+
         
 
