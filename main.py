@@ -1,11 +1,16 @@
-from InMemoryColumnStore import InMemoryColumnStore
 from Query import Query
 from QueryProcessing import QueryProcessing
+from ColumnStore import ColumnStore
 
 choice = 0
 matric = "841G"
 query = Query(matric)
-storage = InMemoryColumnStore("./data/ResalePricesSingapore.csv")
+
+# Initialise Column Store
+csv_file = "data/ResalePricesSingapore.csv"
+store = ColumnStore(csv_file)
+store.extract_and_store()
+
 res = []
 while True:
     print("------------------------------------------------")
