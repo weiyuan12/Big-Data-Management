@@ -1,3 +1,4 @@
+import time
 from Query import Query
 from QueryProcessing import QueryProcessing
 from ColumnStore import ColumnStore
@@ -61,10 +62,13 @@ class QueryProcessingTest:
 
         return list(zip(*column_data))  # Transpose the list of lists
 
+##### TEST PIPELINE #####
+start_time = time.time()
+
 # Query Processor
 queryProcessor = QueryProcessingTest(query, store)
-queryProcessor.filterByTown()
 queryProcessor.filterByPeriod()
+queryProcessor.filterByTown()
 queryProcessor.filterByArea()
 
 result = queryProcessor.reconstructTuple()
@@ -75,4 +79,8 @@ avgPrice = compute_avg_price(result)
 stdDevPrice = compute_std_dev_price(result)
 minPricePerSqm = compute_min_price_per_sqm(result)
 
-print(minPrice, avgPrice, stdDevPrice, minPricePerSqm)
+end_time = time.time()
+elapsed_time = end_time - start_time
+
+print("Query Result: ", minPrice, avgPrice, stdDevPrice, minPricePerSqm)
+print(f"Time Taken: {elapsed_time:.4f} seconds")

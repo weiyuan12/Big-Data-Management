@@ -20,7 +20,7 @@ def compute_min_price(data):
     """
     Compute the minimum resale price.
     """
-    return min(price for price, _ in data)
+    return round(min(price for price, _ in data), 2)
 
 
 def compute_avg_price(data):
@@ -28,7 +28,7 @@ def compute_avg_price(data):
     Compute the average resale price.
     """
     prices = [price for price, _ in data]
-    return sum(prices) / len(prices) if prices else 0
+    return round(sum(prices) / len(prices) if prices else 0, 2)
 
 
 def compute_std_dev_price(data):
@@ -40,11 +40,11 @@ def compute_std_dev_price(data):
         return 0
     avg = compute_avg_price(data)
     variance = sum((p - avg) ** 2 for p in prices) / len(prices)
-    return math.sqrt(variance)
+    return round(math.sqrt(variance), 2)
 
 
 def compute_min_price_per_sqm(data):
     """
     Compute the minimum price per square meter.
     """
-    return min(price / area for price, area in data if area > 0)
+    return round(min(price / area for price, area in data if area > 0), 2)
