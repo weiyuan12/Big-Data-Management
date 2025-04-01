@@ -24,7 +24,7 @@ while True:
         res = {}
         print("-----------------Clearing Result ---------------------------")
     elif choice in [1,2,3,4]:
-        queryProcessor = QueryProcessing(query, storage)
+        queryProcessor = QueryProcessing(query, store)
         year, month, town, category, result = queryProcessor.getResult(choice)
         res.append({"Year" : year, "Month" : month, "Town": town, "Category": category, "Value": result})
     elif choice == 6:

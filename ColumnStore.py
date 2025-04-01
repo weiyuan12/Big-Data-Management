@@ -53,12 +53,16 @@ class ColumnStore:
                     elif expected_type == float:
                         f.write(struct.pack('d', float(value)))  # Store as 8-byte double
 
-    def load_column(self, column_name):
+    def load_column(self, column_name, positions=None):
         """
         Loads a column from its binary file.
         
         Args:
         - column_name: The column name to be loaded
+        - positions: Optional list of integer indices to filter data
+
+        Returns:
+        - A list of values (all or filtered by positions)
         """
 
         file_path = os.path.join(self.store_dir, f"{column_name}.store")
@@ -69,30 +73,43 @@ class ColumnStore:
 
         expected_type = self.expected_data_types.get(column_name, str)  # Default to string
 
+        if expected_type == str:
+            record_size = 50
+            unpack_fn = lambda b: b.decode('utf-8').strip('\x00')
+        elif expected_type == int:
+            record_size = 4
+            unpack_fn = lambda b: struct.unpack('i', b)[0]
+        elif expected_type == float:
+            record_size = 8
+            unpack_fn = lambda b: struct.unpack('d', b)[0]
+
         with open(file_path, 'rb') as f:
-            while True:
-                if expected_type == str:
-                    chunk = f.read(50)  # Read fixed 50-byte string
+            # Read Whole Column
+            if positions is None:
+                while True:
+                    chunk = f.read(record_size)
                     if not chunk:
                         break
-                    data.append(chunk.decode('utf-8').strip('\x00'))
-                elif expected_type == int:
-                    chunk = f.read(4)  # Read 4-byte integer
+                    data.append(unpack_fn(chunk))
+
+            # Read only specific positions
+            else:
+                for pos in positions:
+                    f.seek(pos * record_size)
+                    chunk = f.read(record_size)
                     if not chunk:
                         break
-                    data.append(struct.unpack('i', chunk)[0])
-                elif expected_type == float:
-                    chunk = f.read(8)  # Read 8-byte double
-                    if not chunk:
-                        break
-                    data.append(struct.unpack('d', chunk)[0])
+                    data.append(unpack_fn(chunk))
 
         return data
+
 
     def query(self, column_name, condition=lambda x: True):
         """Queries a specific column with a condition."""
         data = self.load_column(column_name)
         return [val for val in data if condition(val)]
+
+
 
 # # Example Usage
 # csv_file = "data/ResalePricesSingapore.csv"
@@ -104,6 +121,9 @@ class ColumnStore:
 # # Load and print first 10 towns
 # towns = store.load_column("town")
 # print("First 10 towns:", towns[:10])
+
+# towns_filtered = store.load_column("town", [0, 100, 1000, 10000])
+# print("Fetch specific positions", towns_filtered)
 
 # # Query resale prices greater than 300,000
 # high_prices = store.query("resale_price", lambda x: x > 300000)
