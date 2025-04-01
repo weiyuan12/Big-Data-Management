@@ -2,7 +2,6 @@ from Query import Query
 from QueryProcessing import QueryProcessing
 from ColumnStore import ColumnStore
 from Utilities import (
-    reconstruct_tuples,
     compute_avg_price,
     compute_min_price,
     compute_std_dev_price,
@@ -64,8 +63,8 @@ class QueryProcessingTest:
 
 # Query Processor
 queryProcessor = QueryProcessingTest(query, store)
-queryProcessor.filterByPeriod()
 queryProcessor.filterByTown()
+queryProcessor.filterByPeriod()
 queryProcessor.filterByArea()
 
 result = queryProcessor.reconstructTuple()
