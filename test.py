@@ -22,17 +22,17 @@ class QueryProcessingTest:
     def __init__(self, query: Query, store: ColumnStore):
         self.query = query
         self.store = store
-        self.filtered_positions = list(range(len(store.load_column("resale_price"))))
+        self.filtered_positions = []
 
     def filterByPeriod(self):
         start_month = self.query.START_MONTH
         end_month = self.query.END_MONTH
-        months = self.store.load_column("month", self.filtered_positions)
-
+        months = self.store.load_column("month",None,[{"equality": "==", "value": start_month}, {"equality": "==", "value": end_month}])
         self.filtered_positions = [
-            pos for pos, m in zip(self.filtered_positions, months)
+            pos for pos, m in months
             if (m == start_month or m == end_month)
         ]
+
         print("Number of positions :",len(self.filtered_positions))
         return self
     
@@ -41,7 +41,7 @@ class QueryProcessingTest:
         towns = self.store.load_column("town", self.filtered_positions)
 
         self.filtered_positions = [
-            pos for pos, t in zip(self.filtered_positions, towns)
+            pos for pos, t in towns
             if t.lower() == town.lower()
         ]
         print("Number of positions :",len(self.filtered_positions))
@@ -50,7 +50,7 @@ class QueryProcessingTest:
     def filterByArea(self, min_area=80):
         areas = self.store.load_column("floor_area_sqm", self.filtered_positions)
         self.filtered_positions = [
-            pos for pos, area in zip(self.filtered_positions, areas)
+            pos for pos, area in areas
             if area >= min_area
         ]
         print("Number of positions :",len(self.filtered_positions))
@@ -58,7 +58,7 @@ class QueryProcessingTest:
     
     def reconstructTuple(self):
         columns = ["resale_price", "floor_area_sqm"]
-        column_data = [self.store.load_column(col, self.filtered_positions) for col in columns]
+        column_data = [self.store.load_column(col, self.filtered_positions)[1] for col in columns]
 
         return list(zip(*column_data))  # Transpose the list of lists
 
@@ -73,7 +73,7 @@ queryProcessor.filterByArea()
 
 result = queryProcessor.reconstructTuple()
 
-# Metrics Utilities
+# # Metrics Utilities
 minPrice = compute_min_price(result)
 avgPrice = compute_avg_price(result)
 stdDevPrice = compute_std_dev_price(result)
