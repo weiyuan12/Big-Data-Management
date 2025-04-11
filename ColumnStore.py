@@ -3,13 +3,14 @@ import struct
 import os
 
 class ColumnStore:
-    def __init__(self, csv_file, store_dir="ColumnStore", map_dir = "ZoneMap"):
+    def __init__(self, csv_file, store_dir="ColumnStore", map_dir="ZoneMap"):
         """
         Initialize Column Store object with the provided csv file
 
         Args:
         - csv_file: Path to the CSV file containing the data.
         - store_dir: Directory where the column data will be stored.
+        - map_dir: Directory where the ZoneMap information will be stored
         """
         self.ZONE_SIZE = 1000
         self.csv_file = csv_file
@@ -49,6 +50,8 @@ class ColumnStore:
             
             zone_map = []
             idx = 0
+
+            # Create Column Store 
             with open(file_path, 'wb') as f:
                 temp_block = []
                 for value in column_data:
@@ -67,6 +70,8 @@ class ColumnStore:
                             temp_block = []
                 if len(temp_block) > 0:
                     zone_map.append((min(temp_block), max(temp_block)))
+            
+            # Create Zone Map
             if column_name == "month" or column_name =="floor_area_sqm" or column_name =="resale_price":
                 map_path = os.path.join(self.map_dir, f"{column_name}.zonemap")
                 with open(map_path, 'wb') as zm:
@@ -80,7 +85,8 @@ class ColumnStore:
                         for min_val, max_val in zone_map:
                             zm.write(min_val.encode('utf-8')[:50].ljust(50, b'\x00'))
                             zm.write(max_val.encode('utf-8')[:50].ljust(50, b'\x00'))
-                    
+
+
     def load_zone_map(self, column_name):
         map_path = os.path.join(self.map_dir, f"{column_name}.zonemap")
         if not os.path.exists(map_path):
@@ -117,7 +123,9 @@ class ColumnStore:
                     min_val, max_val = struct.unpack('dd', chunk)
                     zone_map.append((min_val, max_val))
         return zone_map
-    def load_column(self, column_name, positions=None, filters=None):
+    
+    
+    def load_column(self, column_name, positions=None):
         """
         Loads a column from its binary file.
         
@@ -131,9 +139,7 @@ class ColumnStore:
 
         file_path = os.path.join(self.store_dir, f"{column_name}.store")
         data = []
-        zone_map = None
-        if positions == None:
-            zone_map = self.load_zone_map(column_name)
+
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"Column '{column_name}' not found in storage.")
 
@@ -149,23 +155,15 @@ class ColumnStore:
             record_size = 8
             unpack_fn = lambda b: struct.unpack('d', b)[0]
 
-        zones_read = 0
         with open(file_path, 'rb') as f:
             # Read Whole Column
             if positions is None:
-                for zone_index, (min_val, max_val) in enumerate(zone_map):
-                    # Zone-level filter
-                    if filters and not self._might_match(filters, min_val, max_val):
-                        continue
-                    f.seek(zone_index * self.ZONE_SIZE * record_size)
-                    zones_read +=1
-                    for i in range(self.ZONE_SIZE):
-                        chunk = f.read(record_size)
-                        if not chunk:
-                            break
-                        value = unpack_fn(chunk)
-                        data.append((zone_index * self.ZONE_SIZE + i, value))
-                print(f"Column: {column_name}, Zones read: {zones_read}, Data Accessed: {zones_read * self.ZONE_SIZE}")
+                while True:
+                    chunk = f.read(record_size)
+                    if not chunk:
+                        break
+                    data.append(unpack_fn(chunk))
+            
             # Read only specific positions
             else:
                 for pos in positions:
@@ -177,11 +175,52 @@ class ColumnStore:
 
         return data
 
+    def load_column_with_zone_map(self, column_name, filters):
+        """
+        Loads a column using ZoneMap.
 
-    def query(self, column_name, condition=lambda x: True):
-        """Queries a specific column with a condition."""
-        data = self.load_column(column_name)
-        return [val for val in data if condition(val)]
+        Args:
+        - column_name: The column to be loaded. (month, floor_area_sqm, resale_price)
+        - filters: criterion for using ZoneMap. {"equality": "operatorType", "value": "valueForComparison"}
+
+        Returns:
+        - A list of values filtered by filters
+        """
+        file_path = os.path.join(self.store_dir, f"{column_name}.store")
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"Column '{column_name}' not found in storage.")
+        
+        zone_map = self.load_zone_map(column_name)
+        data = []
+
+        expected_type = self.expected_data_types.get(column_name, str)  # Default to string
+        if expected_type == str:
+            record_size = 50
+            unpack_fn = lambda b: b.decode('utf-8').strip('\x00')
+        elif expected_type == int:
+            record_size = 4
+            unpack_fn = lambda b: struct.unpack('i', b)[0]
+        elif expected_type == float:
+            record_size = 8
+            unpack_fn = lambda b: struct.unpack('d', b)[0]
+
+        zones_read = 0
+        with open(file_path, 'rb') as f:
+            for zone_index, (min_val, max_val) in enumerate(zone_map):
+                # Zone-level filter
+                if filters and not self._might_match(filters, min_val, max_val):
+                    continue
+                f.seek(zone_index * self.ZONE_SIZE * record_size)
+                zones_read +=1
+                for i in range(self.ZONE_SIZE):
+                    chunk = f.read(record_size)
+                    if not chunk:
+                        break
+                    value = unpack_fn(chunk)
+                    data.append((zone_index * self.ZONE_SIZE + i, value))
+            print(f"Column: {column_name}, Zones read: {zones_read}, Data Accessed: {zones_read * self.ZONE_SIZE}")
+
+        return data
     
     def _might_match(self, filters, min_val, max_val):
         try:
@@ -216,6 +255,12 @@ class ColumnStore:
             return False  # No match
         except Exception:
             return True
+        
+
+    def query(self, column_name, condition=lambda x: True):
+        """Queries a specific column with a condition."""
+        data = self.load_column(column_name)
+        return [val for val in data if condition(val)]
 
 
 # # Example Usage
