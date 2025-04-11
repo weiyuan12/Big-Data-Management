@@ -74,6 +74,7 @@ queryProcessor.filterByTown()
 queryProcessor.filterByArea()
 result = queryProcessor.reconstructTuple()
 
+
 # Metrics Utilities
 minPrice = compute_min_price(result)
 avgPrice = compute_avg_price(result)
@@ -88,73 +89,73 @@ print(f"Time Taken: {elapsed_time:.4f} seconds\n\n")
 
 
 
-# ##### SharedScan PIPELINE #####
-# print("SharedScan Query Pipeline")
-# start_time = time.time()
+##### SharedScan PIPELINE #####
+print("SharedScan Query Pipeline")
+start_time = time.time()
 
-# # Query Processor
-# queryProcessor = QueryProcessing(query, store)
-# queryProcessor.filterBySharedScan()
-# result = queryProcessor.reconstructTuple()
+# Query Processor
+queryProcessor = QueryProcessing(query, store)
+queryProcessor.filterBySharedScan()
+result = queryProcessor.reconstructTuple()
 
-# # Metrics Utilities
-# minPrice = compute_min_price(result)
-# avgPrice = compute_avg_price(result)
-# stdDevPrice = compute_std_dev_price(result)
-# minPricePerSqm = compute_min_price_per_sqm(result)
+# Metrics Utilities
+minPrice = compute_min_price(result)
+avgPrice = compute_avg_price(result)
+stdDevPrice = compute_std_dev_price(result)
+minPricePerSqm = compute_min_price_per_sqm(result)
 
-# end_time = time.time()
-# elapsed_time = end_time - start_time
+end_time = time.time()
+elapsed_time = end_time - start_time
 
-# print("Query Result (ZoneMap): ", minPrice, avgPrice, stdDevPrice, minPricePerSqm)
-# print(f"Time Taken: {elapsed_time:.4f} seconds\n\n")
-
-
-
-
-# ##### ZoneMap PIPELINE #####
-# print("ZoneMap Query Pipeline")
-# start_time = time.time()
-
-# # Query Processor
-# queryProcessor = QueryProcessing(query, store)
-# queryProcessor.filterByPeriod(useZoneMap=True)
-# queryProcessor.filterByArea()
-# queryProcessor.filterByTown()
-# result = queryProcessor.reconstructTuple()
-
-# # Metrics Utilities
-# minPrice = compute_min_price(result)
-# avgPrice = compute_avg_price(result)
-# stdDevPrice = compute_std_dev_price(result)
-# minPricePerSqm = compute_min_price_per_sqm(result)
-
-# end_time = time.time()
-# elapsed_time = end_time - start_time
-
-# print("Query Result (ZoneMap): ", minPrice, avgPrice, stdDevPrice, minPricePerSqm)
-# print(f"Time Taken: {elapsed_time:.4f} seconds\n\n")
+print("Query Result (ZoneMap): ", minPrice, avgPrice, stdDevPrice, minPricePerSqm)
+print(f"Time Taken: {elapsed_time:.4f} seconds\n\n")
 
 
 
-# ##### ZoneMap + SharedScan PIPELINE #####
-# print("ZoneMap + SharedScan Query Pipeline")
-# start_time = time.time()
 
-# # Query Processor
-# queryProcessor = QueryProcessing(query, store)
-# queryProcessor.filterByPeriod(useZoneMap=True)
-# queryProcessor.filterBySharedScanWithZoneMap()
-# result = queryProcessor.reconstructTuple()
+##### ZoneMap PIPELINE #####
+print("ZoneMap Query Pipeline")
+start_time = time.time()
 
-# # Metrics Utilities
-# minPrice = compute_min_price(result)
-# avgPrice = compute_avg_price(result)
-# stdDevPrice = compute_std_dev_price(result)
-# minPricePerSqm = compute_min_price_per_sqm(result)
+# Query Processor
+queryProcessor = QueryProcessing(query, store)
+queryProcessor.filterByPeriod(useZoneMap=True)
+queryProcessor.filterByArea()
+queryProcessor.filterByTown()
+result = queryProcessor.reconstructTuple()
 
-# end_time = time.time()
-# elapsed_time = end_time - start_time
+# Metrics Utilities
+minPrice = compute_min_price(result)
+avgPrice = compute_avg_price(result)
+stdDevPrice = compute_std_dev_price(result)
+minPricePerSqm = compute_min_price_per_sqm(result)
 
-# print("Query Result (ZoneMap): ", minPrice, avgPrice, stdDevPrice, minPricePerSqm)
-# print(f"Time Taken: {elapsed_time:.4f} seconds\n\n")
+end_time = time.time()
+elapsed_time = end_time - start_time
+
+print("Query Result (ZoneMap): ", minPrice, avgPrice, stdDevPrice, minPricePerSqm)
+print(f"Time Taken: {elapsed_time:.4f} seconds\n\n")
+
+
+
+##### ZoneMap + SharedScan PIPELINE #####
+print("ZoneMap + SharedScan Query Pipeline")
+start_time = time.time()
+
+# Query Processor
+queryProcessor = QueryProcessing(query, store)
+queryProcessor.filterByPeriod(useZoneMap=True)
+queryProcessor.filterBySharedScanWithZoneMap()
+result = queryProcessor.reconstructTuple()
+
+# Metrics Utilities
+minPrice = compute_min_price(result)
+avgPrice = compute_avg_price(result)
+stdDevPrice = compute_std_dev_price(result)
+minPricePerSqm = compute_min_price_per_sqm(result)
+
+end_time = time.time()
+elapsed_time = end_time - start_time
+
+print("Query Result (ZoneMap): ", minPrice, avgPrice, stdDevPrice, minPricePerSqm)
+print(f"Time Taken: {elapsed_time:.4f} seconds\n\n")

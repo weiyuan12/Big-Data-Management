@@ -100,7 +100,11 @@ class QueryProcessing:
     
     def reconstructTuple(self):
         columns = ["resale_price", "floor_area_sqm"]
-        column_data = [self.store.load_column(col, self.filtered_positions)[1] for col in columns]
+        column_data = [
+            [value for _, value in self.store.load_column(col, self.filtered_positions)]
+            for col in columns
+        ]
+
 
         return list(zip(*column_data))  # Transpose the list of lists
     

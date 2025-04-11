@@ -158,11 +158,13 @@ class ColumnStore:
         with open(file_path, 'rb') as f:
             # Read Whole Column
             if positions is None:
+                pos = 0
                 while True:
                     chunk = f.read(record_size)
                     if not chunk:
                         break
-                    data.append(unpack_fn(chunk))
+                    data.append((pos, unpack_fn(chunk)))
+                    pos += 1
             
             # Read only specific positions
             else:
