@@ -1,6 +1,6 @@
 from Query import Query
 from ColumnStore import ColumnStore
-
+import numpy as np
 
 class QueryProcessing:
     def __init__(self, query: Query, store: ColumnStore):
@@ -25,7 +25,18 @@ class QueryProcessing:
             if m == start_month or m == end_month
         ]
 
-        print("Number of positions :", len(self.filtered_positions))
+        print("Number of positions after datetime Filter:", len(self.filtered_positions))
+        return self
+    
+    def filterByTownWithBitMap(self):
+        town = self.query.TOWN
+        bitmap = self.store.load_bitmap(town)
+        filtered_mask = np.zeros_like(bitmap, dtype=bool)
+        filtered_mask[self.filtered_positions] = True
+
+        combined_mask = bitmap & filtered_mask
+        self.filtered_positions = np.flatnonzero(combined_mask)
+        print("Number of positions After town bitmap filter:", len(self.filtered_positions))
         return self
     
     def filterByTown(self):
@@ -37,7 +48,7 @@ class QueryProcessing:
             if t.lower() == town.lower()
         ]
 
-        print("Number of positions :", len(self.filtered_positions))
+        print("Number of positions after town filter:", len(self.filtered_positions))
         return self
     
     def filterByArea(self, min_area=80, useZoneMap=False):
@@ -54,7 +65,7 @@ class QueryProcessing:
             if area >= min_area
         ]
 
-        print("Number of positions :",len(self.filtered_positions))
+        print("Number of positions after area filter:",len(self.filtered_positions))
         return self
     
 

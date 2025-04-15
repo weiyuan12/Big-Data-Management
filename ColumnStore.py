@@ -1,21 +1,23 @@
 import pandas as pd
 import struct
 import os
+import numpy as np
 
 class ColumnStore:
-    def __init__(self, csv_file, store_dir="ColumnStore", map_dir="ZoneMap"):
+    def __init__(self, csv_file, store_dir="ColumnStore", zone_dir="ZoneMap", bitmap_dir = "BitMap"):
         """
         Initialize Column Store object with the provided csv file
 
         Args:
         - csv_file: Path to the CSV file containing the data.
         - store_dir: Directory where the column data will be stored.
-        - map_dir: Directory where the ZoneMap information will be stored
+        - zone_dir: Directory where the ZoneMap information will be stored
         """
         self.ZONE_SIZE = 1000
         self.csv_file = csv_file
         self.store_dir = store_dir
-        self.map_dir = map_dir
+        self.zone_dir = zone_dir
+        self.bitmap_dir = bitmap_dir
         self.expected_data_types = {
             'month': str,
             'town': str,
@@ -31,8 +33,10 @@ class ColumnStore:
 
         if not os.path.exists(self.store_dir):
             os.makedirs(self.store_dir)
-        if not os.path.exists(self.map_dir):
-            os.makedirs(self.map_dir)
+        if not os.path.exists(self.zone_dir):
+            os.makedirs(self.zone_dir)
+        if not os.path.exists(self.bitmap_dir):
+            os.makedirs(self.bitmap_dir)
 
     def extract_and_store(self):
         """
@@ -45,35 +49,52 @@ class ColumnStore:
 
         for column_name in df.columns:
             column_data = df[column_name].fillna("@#*NULL@#*")
-            expected_type = self.expected_data_types.get(column_name, str) 
-            file_path = os.path.join(self.store_dir, f"{column_name}.store") 
-            
+            expected_type = self.expected_data_types.get(column_name, str)
+            file_path = os.path.join(self.store_dir, f"{column_name}.store")
+
             zone_map = []
             idx = 0
+            temp_block = []
 
-            # Create Column Store 
-            with open(file_path, 'wb') as f:
-                temp_block = []
+            # For bitmap index on 'town'
+            town_bitmaps = {}
+            town_row_index = 0
+            towns_seen = set()
+            if column_name == "town":
                 for value in column_data:
+                    towns_seen.add(value.strip())
+            town_bitmaps = {town: np.zeros(len(column_data), dtype=np.uint8) for town in towns_seen}
+            with open(file_path, 'wb') as f:
+                for value in column_data:
+                    # Write to binary store
                     if expected_type == str:
-                        f.write(value.encode('utf-8')[:50].ljust(50, b'\x00'))  # Fixed 50-byte strings
+                        f.write(value.encode('utf-8')[:50].ljust(50, b'\x00'))
                     elif expected_type == int:
-                        f.write(struct.pack('i', int(value))) # Store as 4-byte integer
+                        f.write(struct.pack('i', int(value)))
                     elif expected_type == float:
-                        f.write(struct.pack('d', float(value)))  # Store as 8-byte double
-                    
-                    if column_name == "month" or column_name =="floor_area_sqm" or column_name =="resale_price":
+                        f.write(struct.pack('d', float(value)))
+
+                    # Zone map support
+                    if column_name in {"month", "floor_area_sqm", "resale_price"}:
                         temp_block.append(value)
-                        idx+=1
-                        if idx % self.ZONE_SIZE ==0:
+                        idx += 1
+                        if idx % self.ZONE_SIZE == 0:
                             zone_map.append((min(temp_block), max(temp_block)))
                             temp_block = []
-                if len(temp_block) > 0:
-                    zone_map.append((min(temp_block), max(temp_block)))
-            
-            # Create Zone Map
-            if column_name == "month" or column_name =="floor_area_sqm" or column_name =="resale_price":
-                map_path = os.path.join(self.map_dir, f"{column_name}.zonemap")
+
+                    # Bitmap index build
+                    if column_name == "town":
+                        town_str = value.strip()
+                        town_bitmaps[town_str][town_row_index] = 1
+                        town_row_index += 1
+
+            # Final zone map flush
+            if len(temp_block) > 0 and column_name in {"month", "floor_area_sqm", "resale_price"}:
+                zone_map.append((min(temp_block), max(temp_block)))
+
+            # Write zone map if needed
+            if column_name in {"month", "floor_area_sqm", "resale_price"}:
+                map_path = os.path.join(self.zone_dir, f"{column_name}.zonemap")
                 with open(map_path, 'wb') as zm:
                     if expected_type == int:
                         for min_val, max_val in zone_map:
@@ -86,9 +107,18 @@ class ColumnStore:
                             zm.write(min_val.encode('utf-8')[:50].ljust(50, b'\x00'))
                             zm.write(max_val.encode('utf-8')[:50].ljust(50, b'\x00'))
 
+            # Write bitmap index if applicable
+            if column_name == "town":
+                for town, bitmap in town_bitmaps.items():
+                    safe_name = town.replace("/", "_")
+                    town_file = os.path.join(self.bitmap_dir, f"{safe_name}.bitmap")
+                    with open(town_file, 'wb') as bf:
+                        # Use bytes instead of booleans to save space
+                        bf.write(bytearray(bitmap))
+
 
     def load_zone_map(self, column_name):
-        map_path = os.path.join(self.map_dir, f"{column_name}.zonemap")
+        map_path = os.path.join(self.zone_dir, f"{column_name}.zonemap")
         if not os.path.exists(map_path):
             return None
         expected_type = self.expected_data_types.get(column_name, str)
@@ -223,6 +253,15 @@ class ColumnStore:
             print(f"Column: {column_name}, Zones read: {zones_read}, Data Accessed: {zones_read * self.ZONE_SIZE}")
 
         return data
+    
+    def load_bitmap(self, town):
+        safe_name = town.replace("/", "_")
+        town_file = os.path.join(self.bitmap_dir, f"{safe_name}.bitmap")
+        if not os.path.exists(town_file):
+            raise FileNotFoundError(f"Column '{town_file}' not found in storage.")
+        with open(town_file, 'rb') as f:
+            bitmap = np.frombuffer(f.read(), dtype=np.uint8)
+        return bitmap
     
     def _might_match(self, filters, min_val, max_val):
         try:
