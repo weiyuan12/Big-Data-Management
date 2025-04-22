@@ -12,6 +12,7 @@ class ColumnStore:
         - csv_file: Path to the CSV file containing the data.
         - store_dir: Directory where the column data will be stored.
         - zone_dir: Directory where the ZoneMap information will be stored
+        - bitmap_dir: Directory where the BitMap information will be stored
         """
         self.ZONE_SIZE = 1000
         self.csv_file = csv_file
@@ -38,13 +39,10 @@ class ColumnStore:
         if not os.path.exists(self.bitmap_dir):
             os.makedirs(self.bitmap_dir)
 
+    '''
+    Reads CSV and stores data in separate binary files per column.
+    '''
     def extract_and_store(self):
-        """
-        Reads CSV and stores data in separate binary files per column.
-        
-        Args:
-        - None
-        """
         df = pd.read_csv(self.csv_file)
 
         for column_name in df.columns:
@@ -113,7 +111,6 @@ class ColumnStore:
                     safe_name = town.replace("/", "_")
                     town_file = os.path.join(self.bitmap_dir, f"{safe_name}.bitmap")
                     with open(town_file, 'wb') as bf:
-                        # Use bytes instead of booleans to save space
                         bf.write(bytearray(bitmap))
 
 
@@ -126,7 +123,7 @@ class ColumnStore:
 
         with open(map_path, 'rb') as zm:
             if expected_type == str:
-                record_size = 100  # 2 x 50 bytes
+                record_size = 100 
                 while True:
                     chunk = zm.read(record_size)
                     if not chunk:
@@ -162,9 +159,6 @@ class ColumnStore:
         Args:
         - column_name: The column name to be loaded
         - positions: Optional list of integer indices to filter data
-
-        Returns:
-        - A list of values (all or filtered by positions)
         """
 
         file_path = os.path.join(self.store_dir, f"{column_name}.store")
@@ -215,8 +209,6 @@ class ColumnStore:
         - column_name: The column to be loaded. (month, floor_area_sqm, resale_price)
         - filters: criterion for using ZoneMap. {"equality": "operatorType", "value": "valueForComparison"}
 
-        Returns:
-        - A list of values filtered by filters
         """
         file_path = os.path.join(self.store_dir, f"{column_name}.store")
         if not os.path.exists(file_path):
@@ -263,6 +255,9 @@ class ColumnStore:
         return bitmap
     
     def _might_match(self, filters, min_val, max_val):
+        '''
+        Determines if value in filter might be within a zone
+        '''
         try:
             for cond in filters:
                 op = cond["equality"]
@@ -303,20 +298,3 @@ class ColumnStore:
         return [val for val in data if condition(val)]
 
 
-# # Example Usage
-# csv_file = "data/ResalePricesSingapore.csv"
-# store = ColumnStore(csv_file)
-
-# # Extract and store data as binary
-# store.extract_and_store()
-
-# # Load and print first 10 towns
-# towns = store.load_column("town")
-# print("First 10 towns:", towns[:10])
-
-# towns_filtered = store.load_column("town", [0, 100, 1000, 10000])
-# print("Fetch specific positions", towns_filtered)
-
-# # Query resale prices greater than 300,000
-# high_prices = store.query("resale_price", lambda x: x > 300000)
-# print("High resale prices:", high_prices[:10])

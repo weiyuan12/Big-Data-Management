@@ -1,3 +1,6 @@
+'''
+The Query class is used to preprocess the Matric Number, and obtain the Search values
+'''
 class Query:
     def __init__(self, lastDigits):
         self.lastDigits = lastDigits
