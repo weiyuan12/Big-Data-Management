@@ -1,20 +1,5 @@
 import math
-
-# def reconstruct_tuples(store, positions, columns):
-#     """
-#     Given a list of positions and column names, reconstruct a list of tuples for those columns.
-
-#     Args:
-#     - store: instance of ColumnStore
-#     - positions: list of integer indices
-#     - columns: list of column names to fetch (e.g., ['resale_price', 'floor_area_sqm'])
-
-#     Returns:
-#     - List of tuples: e.g., [(price1, area1), (price2, area2), ...]
-#     """
-#     column_data = [store.load_column(col, positions) for col in columns]
-#     return list(zip(*column_data))  # Transpose the list of lists
-
+import statistics
 
 def compute_min_price(data):
     """
@@ -38,9 +23,11 @@ def compute_std_dev_price(data):
     prices = [price for price, _ in data]
     if not prices:
         return 0
-    avg = compute_avg_price(data)
-    variance = sum((p - avg) ** 2 for p in prices) / len(prices)
-    return round(math.sqrt(variance), 2)
+    # avg = compute_avg_price(data)
+    # variance = sum((p - avg) ** 2 for p in prices) / len(prices)
+    # return round(math.sqrt(variance), 2)
+
+    return round(statistics.stdev(prices), 2)
 
 
 def compute_min_price_per_sqm(data):
@@ -48,3 +35,4 @@ def compute_min_price_per_sqm(data):
     Compute the minimum price per square meter.
     """
     return round(min(price / area for price, area in data if area > 0), 2)
+
