@@ -251,7 +251,6 @@ class ColumnStore:
                     value = unpack_fn(chunk)
                     data.append((zone_index * self.ZONE_SIZE + i, value))
             print(f"Column: {column_name}, Zones read: {zones_read}, Data Accessed: {zones_read * self.ZONE_SIZE}")
-
         return data
     
     def load_bitmap(self, town):

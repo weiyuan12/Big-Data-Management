@@ -72,6 +72,7 @@ def run_experiment(query: Query, store: ColumnStore):
     run("Base", lambda qp: qp.filterByPeriod().filterByTown().filterByArea().reconstructTuple())
     run("SharedScan", lambda qp: qp.filterBySharedScan().reconstructTuple())
     run("ZoneMap", lambda qp: qp.filterByPeriod(useZoneMap=True).filterByTown().filterByArea().reconstructTuple())
+    run("BitMap", lambda qp: qp.filterByPeriod().filterByTownWithBitMap().filterByArea().reconstructTuple())
     run("ZoneMap + SharedScan", lambda qp: qp.filterByPeriod(useZoneMap=True).filterBySharedScanWithZoneMap().reconstructTuple())
 
 
