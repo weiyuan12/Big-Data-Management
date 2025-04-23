@@ -45,7 +45,7 @@ def run_query_pipeline(query: Query, store: ColumnStore):
     os.makedirs("results", exist_ok=True)
     filename = f"ScanResult_{matric}.csv"
     result_df.to_csv(os.path.join("results", filename), index=False)
-    print(f"\nResults written to Result/{filename}")
+    print(f"\nResults written to result/{filename}")
     print(f"Time Taken: {elapsed_time:.4f} seconds\n\n")
 
 
